@@ -2,13 +2,26 @@ type ('nonterminal, 'terminal) symbol =
   | N of 'nonterminal
   | T of 'terminal
 
-(* grammar from hw1 is a start symbol and rules
-grammar for hw2 is a start symbol and a production function
-convert rules to a production function *)
-(* let convert_grammar gram1 =
-	match gram1 with
-	(start, rules) -> (start, convert_rules_to_production_function rules)
- *)
+let rec contains e l = 
+	match l with
+	[] -> false
+	| h::t when h=e -> true
+	| h::t -> (contains e t) 
+
+(* 1 *)
+(* true if a is a subset of b. every subset is a subset of itself. 
+takes lists of any type *)
+let rec subset a b =
+	match a with 
+	[] -> true
+	| h::t -> (contains h b) && (subset t b)
+
+(* 2 *)
+(* true if the represented sets are equal *)
+let equal_sets a b =
+	(subset a b) && (subset b a)
+
+
 (* rules is a list of pairs of starting symbol and a rhs (list of symbols)
 starting symbol is nonterminal such as Expr, Term, etc
 list of symbols can be terminal or nonterminal ie [T"("; N Expr; T")" 
@@ -35,9 +48,6 @@ the production function would be...
 		]
 *)
 
-(* let convert_rules_to_production_function rules =
-	match rules with
-	| (start,rhs)::t -> *)
 
 let rec recurse_helper current_start rules =
 	match rules with
@@ -59,18 +69,43 @@ let rec recurse current_start rules =
 (* 
 returns a list of pairs
 the pairs consist of a symbol and its alternative list of right hand sides
-
-initial call should have current_start as None?
  *)
-let rec rules_to_alternative_lists current_start rules = 
+let rec rules_to_list_of_alternative_lists current_start rules = 
 	match rules with
-	| (start,rhs)::t -> if start!=current_start 
-						then (recurse start rules)::(rules_to_alternative_lists start t)
-						else (rules_to_alternative_lists start t)
+	| (start,rhs)::t -> if start!=current_start
+						then (recurse start rules)::(rules_to_list_of_alternative_lists start t)
+						else (rules_to_list_of_alternative_lists start t)
 	| _ -> []
 
-let rec simple (sym, alternative_list) = 
-	fun sym -> sym
+let rules_to_list_of_alternative_lists_wrapper rules =
+	match rules with
+	| (start,rhs)::t -> (recurse start rules)::(rules_to_list_of_alternative_lists start t)
+	| _ -> []
+	(* rules_to_list_of_alternative_lists None rules *)
+
+
+let rec alternative_lists_to_production_function list_of_alternative_lists =
+	fun input -> match list_of_alternative_lists with
+				| (sym,alternative_list)::t -> 	if input=sym
+												then alternative_list
+												else (alternative_lists_to_production_function t input)
+				| _ -> [] 
+
+let convert_rules_to_production_function rules = 
+	alternative_lists_to_production_function (rules_to_list_of_alternative_lists_wrapper rules) 
+
+(* grammar from hw1 is a start symbol and rules
+grammar for hw2 is a start symbol and a production function
+convert rules to a production function *)
+let convert_grammar gram1 =
+	match gram1 with
+	(start, rules) -> (start, convert_rules_to_production_function rules)
+
+(* return a matcher for gram *)
+let parse_prefix gram = 
+	gram
+
+
 
 (* let twice (f : int -> int) (x : int) : int = f (f x);; *)
 (* let twice f x = f (f x);;
@@ -82,22 +117,4 @@ let fourth = twice (fun (x : int) -> x * x);;
 let fourth2 = twice2 (fun (x : int) -> x * x);; *)
 
 
-let rec contains e l = 
-	match l with
-	[] -> false
-	| h::t when h=e -> true
-	| h::t -> (contains e t) 
-
-(* 1 *)
-(* true if a is a subset of b. every subset is a subset of itself. 
-takes lists of any type *)
-let rec subset a b =
-	match a with 
-	[] -> true
-	| h::t -> (contains h b) && (subset t b)
-
-(* 2 *)
-(* true if the represented sets are equal *)
-let equal_sets a b =
-	(subset a b) && (subset b a)
 
