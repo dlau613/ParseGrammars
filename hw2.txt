@@ -1,0 +1,3 @@
+the way i check length needs work on
+currently compare lengths, but don't consider the fact that
+a nonterminal symbol could go to nothing
