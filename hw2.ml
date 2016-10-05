@@ -149,6 +149,10 @@ let rec is_prefix_of potential_prefix input =
 
 
 (***************)
+(* 
+finds the first nonterminal symbol in a list of symbols and returns it
+current_list is a list of symbols (terminal and nonterminal)
+ *)
 let rec find_first_nonterminal current_list =
 	match current_list with
 	| h::t -> 	(match h with
@@ -157,7 +161,7 @@ let rec find_first_nonterminal current_list =
 	| _ -> None
 
 (*
-return the alt list of the first nonterminal symbol in current_list 
+return the alternative list of the first nonterminal symbol in current_list 
  *)
 let alt_list_of_first_nonterminal p_function current_list = 
 	match (find_first_nonterminal current_list) with
@@ -167,20 +171,41 @@ let alt_list_of_first_nonterminal p_function current_list =
 (***************)
 
 (*************)
-let rec replace_first_nonterminal current_list replacement =
+(* 
+recurses until it reaches a nonterminal symbol
+replaces it with replacement
+should only be ran on lists if theres a nonterminal in it
+ *)
+let rec replace_first_nonterminal_helper current_list replacement =
 	match current_list with
-	| h::t ->	(match h with
-				| T s -> h::(replace_first_nonterminal t replacement)
+	| h::t -> 	(match h with
+				| T s -> h::(replace_first_nonterminal_helper t replacement)
 				| N s -> replacement@t
 				)
 	| _ -> []
+
+
+(* 
+current_list is a list of symbols and derivation is a list of rules used to derive the current_list from the start
+look through symbols. if terminal then we want to keep the symbol, so prepend it to the recursive call
+have to use the (d,l) notation because this function returns a pair. if nonterminal then call the helper to do the replacement
+and add the new rule to the derivation
+ *)
+let rec replace_first_nonterminal (derivation, current_list) replacement =
+	match current_list with
+	| h::t ->	(match h with 
+				| T s -> 	(match (replace_first_nonterminal (derivation, t) replacement) with
+							| (d, l) -> (d,h::l))
+				| N s -> (( derivation@[(s,replacement)]), (replace_first_nonterminal_helper current_list replacement))
+				)
+	| _ -> ([],[])
 (* 
 return a list of all the new lists with the first nonterminal symbol replaced
-by each rhs in the alternative list
+by each rhs in the alternative list. keep track of the derivations as well
  *)
-let rec replace_with_alternatives current_list alt_list =
+let rec replace_with_alternatives (derivation,current_list) alt_list =
 	match alt_list with
-	| h::t -> (replace_first_nonterminal current_list h)::(replace_with_alternatives current_list t)
+	| h::t -> (replace_first_nonterminal (derivation,current_list) h)::(replace_with_alternatives (derivation,current_list) t)
 	| _ -> []
 
 (***************)
@@ -195,46 +220,60 @@ let rec possible_prefix_of current_list input =
 							| h2::t2 ->	if h1=h2
 											then possible_prefix_of t1 t2
 										else false
-(*  *)
+(* 
+list of pairs of (derivation, current_list)
+check if the current_list part could be a prefix of the input
+if it can be then keep the pair, otherwise ignore it and keep going
+ *)
+let rec filter_lists list_of_pairs input =
+	match list_of_pairs with
+	| [] -> []
+	| (derivation,current_list)::t -> 	if (possible_prefix_of current_list input)
+										then (derivation,current_list)::(filter_lists t input)
+ 										else (filter_lists t input)
+
+(* 
+alternative to comparing the absolute length of a list of symbols
+this will count the number of terminal symbols instead
+reason is because a list can have a nonterminal symbol that will go to empty
+which means absolute length can be longer than the length of the input, but we shouldnt ignore it
+as a possibility
+ *)
+let rec num_terminals symbol_list = 
+	match symbol_list with
+	| h::t -> 	(match h with
+				| T s -> 1 + num_terminals t
+				| N s -> num_terminals t
+				)
+	| _ -> 0
+
 (* 
 if the current list is all terminals then nothing to replace and return it
 else if there is a nonterminal and its length is less than or equal to the length
 of the input then replace nonterminal with its alternatives. if the length is
 greater then return empty list
  *)
-let rec filter_lists list_of_lists input =
-	match list_of_lists with
-	| [] -> []
-	| h::t -> 	if (possible_prefix_of h input)
-					then h::(filter_lists t input)
- 				else (filter_lists t input)
-
-let replace_nonterminal_with_alternatives p_function current_list input =
+let replace_nonterminal_with_alternatives p_function (derivation,current_list) input =
 	if (is_all_terminals current_list)
-		then [current_list]
-	else if ((List.length current_list) <= (List.length input)) 
-		then ( filter_lists (replace_with_alternatives current_list (alt_list_of_first_nonterminal p_function current_list)) input)
-		(* then (  (replace_with_alternatives current_list (alt_list_of_first_nonterminal p_function current_list)) ) *)
+		then [(derivation,current_list)]
+	(* else if ((List.length current_list) <= (List.length input))  *)
+	else if ((num_terminals current_list) <= (num_terminals input)) 
+		then ( filter_lists (replace_with_alternatives (derivation,current_list) (alt_list_of_first_nonterminal p_function current_list)) input)
 	else []
 
 (* 
-list_of_lists_of_symbols is a list of the possible results when you replace the first nonterminal symbol with rhs's
+list_of_pairs is a list pairs of the derivations and the possible results when you replace the first nonterminal symbol with rhs's
 from its alternative list
-ex: [N Term; N Binop] where N Term -> [[N Num];[N Lvalue]] would give [ [N Num;N Binop]; [N Lvalue; N Binop]]
  *)
-let rec find_all_fragments p_function list_of_lists_of_symbols input =
-	(* match list_of_lists_of_symbols with 
-	| h::t -> (tobenamed_helper p_function h input)@t
-	| _ -> [] *)
-
-	match list_of_lists_of_symbols with 
-	| h::t -> 	if (is_all_terminals h)
-					then h::(find_all_fragments p_function t input)
-				else (find_all_fragments p_function ((replace_nonterminal_with_alternatives p_function h input)@t) input)
+let rec find_all_fragments p_function list_of_pairs input =
+	match list_of_pairs with 
+	| (d,l)::t -> 	if (is_all_terminals l)
+						then (d,l)::(find_all_fragments p_function t input)
+					else (find_all_fragments p_function ((replace_nonterminal_with_alternatives p_function (d,l) input)@t) input)
 	| _ -> []
 
 let find_all_fragments_wrapper gram input =
-	find_all_fragments (snd gram) ( [[N (fst gram)]]) input
+	find_all_fragments (snd gram) [([],[N (fst gram)])] input
 	
 
 (* 

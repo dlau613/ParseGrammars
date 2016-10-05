@@ -143,23 +143,42 @@ let alt_list_of_first_nonterminal_test1 =
 	alt_list_of_first_nonterminal (snd awkish_grammar) [N Term;N Binop; N Expr] = [[N Num];
 	  [N Lvalue]; [N Incrop; N Lvalue];[N Lvalue; N Incrop];[T"("; N Expr; T")"]]
 
-let alt_list_of_first_nonterminal_test0 = 
+let alt_list_of_first_nonterminal_test2 = 
 	alt_list_of_first_nonterminal (snd awkish_grammar) [T"(";T"+";T")"] = []
 
+(* let replace_first_nonterminal_helper_test0 =
+	replace_first_nonterminal_helper [N Term; N Binop; N Expr] [N Num] *)
 let replace_first_nonterminal_test0 =
-	(replace_first_nonterminal [N Term; N Binop; N Expr] [N Num]) = [N Num; N Binop; N Expr]
+	replace_first_nonterminal ([(Expr,[N Term; N Binop; N Expr])], [N Term; N Binop; N Expr]) [N Num] =([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num])],
+   [N Num; N Binop; N Expr])
 
 let replace_first_nonterminal_test1 =
-	(replace_first_nonterminal [T")"; T"+"; N Expr] [T"-";N Binop]) = [T")";T"+";T"-";N Binop]
+	replace_first_nonterminal ( [(Expr,[N Term; N Binop; N Expr]);(Term, [N Num])], [T"0";T"+";N Expr]) [N Term;N Binop; N Expr] =
+	([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num]);
+    (Expr, [N Term; N Binop; N Expr])],
+   [T "0"; T "+"; N Term; N Binop; N Expr])
 
 let replace_with_alternatives_test0 =
-	replace_with_alternatives [N Term; N Binop; N Expr] [[N Num];[N Lvalue];[N Incrop; N Lvalue];
-	  [N Lvalue; N Incrop];[T"("; N Expr; T")"]] = [[N Num; N Binop; N Expr]; [N Lvalue; N Binop; N Expr];
-	  [N Incrop; N Lvalue; N Binop; N Expr]; [N Lvalue; N Incrop; N Binop; N Expr]; [T"(";N Expr; T")"; N Binop; N Expr]]
+	replace_with_alternatives ([ (Expr, [N Term;N Binop;N Expr]); (Term, [N Num])] , [N Term; N Binop; N Expr]) [[N Num];[N Lvalue];[N Incrop; N Lvalue];
+	  [N Lvalue; N Incrop];[T"("; N Expr; T")"]]= [([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num]); (Term, [N Num])],
+    [N Num; N Binop; N Expr]);
+   ([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num]); (Term, [N Lvalue])],
+    [N Lvalue; N Binop; N Expr]);
+   ([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num]);
+     (Term, [N Incrop; N Lvalue])],
+    [N Incrop; N Lvalue; N Binop; N Expr]);
+   ([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num]);
+     (Term, [N Lvalue; N Incrop])],
+    [N Lvalue; N Incrop; N Binop; N Expr]);
+   ([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num]);
+     (Term, [T "("; N Expr; T ")"])],
+    [T "("; N Expr; T ")"; N Binop; N Expr])]
 
 let replace_with_alternatives_test1 =
-	replace_with_alternatives [T"3";N Binop; N Expr] [[T"+"];[T"-"]] = [ [T"3"; T"+";N Expr]; [T"3";T"-";N Expr]]
+	replace_with_alternatives ([],[T"3";N Binop; N Expr]) [[T"+"];[T"-"]] = [([(Binop, [T "+"])], [T "3"; T "+"; N Expr]);
+   ([(Binop, [T "-"])], [T "3"; T "-"; N Expr])]
 
+(* 
 let possible_prefix_of_test0 = 
 	possible_prefix_of [T"3"] [T"3";T"+";T"4";T"-"]
 
@@ -167,7 +186,7 @@ let possible_prefix_of_test1 =
 	possible_prefix_of [T"3";N Expr] [T"3";T"+";T"4";T"-"]
 
 let possible_prefix_of_test2 = 
-	not (possible_prefix_of [T"1";N Expr] [T"3";T"+";T"4";T"-"])
+	not (possible_prefix_of [T"1";N Expr] [T"3";T"+";T"4";T"-"]) *)
 
 let mini_grammar = 
 	(Expr,
@@ -190,17 +209,22 @@ let mini_grammar =
 	 [[T"0"]; [T"1"]]);;
 
 let replace_nonterminal_with_alternatives_test0 = 
-	replace_nonterminal_with_alternatives (snd mini_grammar) [N Expr] [T"3";T"+";T"4"] = [[N Term; N Binop; N Expr]; [N Term]]
+	replace_nonterminal_with_alternatives (snd mini_grammar) ( [(Expr,[N Term;N Binop;N Expr])],[N Expr]) [T"3";T"+";T"4"] 
+	= [([(Expr, [N Term; N Binop; N Expr]); (Expr, [N Term; N Binop; N Expr])],
+    [N Term; N Binop; N Expr]);
+   ([(Expr, [N Term; N Binop; N Expr]); (Expr, [N Term])], [N Term])]
 
-let replace_nonterminal_with_alternatives_test1 = 
-	replace_nonterminal_with_alternatives (snd mini_grammar) [N Expr] [] = []
 
+(* let replace_nonterminal_with_alternatives_test1 = 
+	replace_nonterminal_with_alternatives (snd mini_grammar) ([],[N Expr]) [] *) (* = [] *)
 
-let find_all_fragments_test0 = 
-	find_all_fragments (snd mini_grammar) [[N Expr]] [T"3";T"+";T"4"]
 
 let find_all_fragments_wrapper_test0 = 
 	find_all_fragments_wrapper awkish_grammar [T"3";T"+";T"4";T"-"] 
+	= [([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num]); (Num, [T "3"]);
+     (Binop, [T "+"]); (Expr, [N Term]); (Term, [N Num]); (Num, [T "4"])],
+    [T "3"; T "+"; T "4"]);
+   ([(Expr, [N Term]); (Term, [N Num]); (Num, [T "3"])], [T "3"])]
 
 
 
