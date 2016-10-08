@@ -103,9 +103,6 @@ let accept_empty_suffix derivation = function
    | [] -> Some (derivation, [])
    | _ -> None
 
-(* return a matcher for gram *)
-let parse_prefix gram = 
-	gram
 (* 
 returns true if all the symbols in the input are terminal
 input is a list of terminal and nonterminal symbols
@@ -132,6 +129,10 @@ let rec symbols_to_strings input =
 							| _ -> []
 	else []
 
+let rec strings_to_symbols input = 
+	match input with
+	| [] -> []
+	| h::t -> (T h)::(strings_to_symbols t)
 (*  
 return true if the potential_prefix is a prefix of the input
 potential_prefix is a fragment (list of terminal symbols)
@@ -262,19 +263,59 @@ let replace_nonterminal_with_alternatives p_function (derivation,current_list) i
 	else []
 
 (* 
+returns a list of pairs of all all the fragments and their derivations
 list_of_pairs is a list pairs of the derivations and the possible results when you replace the first nonterminal symbol with rhs's
 from its alternative list
  *)
-let rec find_all_fragments p_function list_of_pairs input =
+let rec find_fragments p_function list_of_pairs input =
 	match list_of_pairs with 
 	| (d,l)::t -> 	if (is_all_terminals l)
-						then (d,l)::(find_all_fragments p_function t input)
-					else (find_all_fragments p_function ((replace_nonterminal_with_alternatives p_function (d,l) input)@t) input)
+						then (d,l)::(find_fragments p_function t input)
+					else (find_fragments p_function ((replace_nonterminal_with_alternatives p_function (d,l) input)@t) input)
 	| _ -> []
 
-let find_all_fragments_wrapper gram input =
-	find_all_fragments (snd gram) [([],[N (fst gram)])] input
-	
+
+let find_fragments_wrapper gram input =
+	find_fragments (snd gram) [([],[N (fst gram)])] input
+
+(*
+returns the suffix given a list and a prefix
+symbol_list is the prefix
+input is the whole list
+ *)
+let rec find_corresponding_suffix_helper symbol_list input = 
+	match symbol_list with
+	| h1::t1 -> (match input with 
+				| h2::t2 -> find_corresponding_suffix_helper t1 t2
+				| _ -> [])
+	| [] ->	(match input with
+			| [] -> []
+			| _ -> input)
+
+let rec find_corresponding_suffix list_of_pairs input =
+	match list_of_pairs with
+	| (d,l)::t -> (d,(symbols_to_strings (find_corresponding_suffix_helper l input)))::(find_corresponding_suffix t input)
+	| [] -> []
+
+(* returns a list of pairs of all the derivations of prefixes and the corresponding suffix *)
+let find_derivations_and_suffixes gram = 
+	fun input -> find_corresponding_suffix (find_fragments_wrapper gram input) input  
+
+(* 
+list of pairs: the pair is a derivation and a suffix *)
+let rec parse_prefix_helper list_of_pairs acceptor = 
+	match list_of_pairs with
+	| (d,s)::t -> 	(match (acceptor d s) with
+				| None -> (parse_prefix_helper t acceptor)
+				| Some x -> Some x)
+	| _ -> None
+
+(* return a matcher for gram 
+matcher is a function that takes an acceptor and a fragment*)
+let parse_prefix gram = 
+	fun acceptor input -> (parse_prefix_helper (find_derivations_and_suffixes gram (strings_to_symbols input)) acceptor )
+		
+
 
 (* 
 returns the first prefix that matches and is accpeted  
