@@ -1,3 +1,55 @@
-the way i check length needs work on
-currently compare lengths, but don't consider the fact that
-a nonterminal symbol could go to nothing
+Design Process: 
+This homework was very time consuming and took a long time just to understand
+the problem.  
+
+In the beginning, I didn't understand the full problem so I designed it bottom
+up. As I wrote function to perform smaller tasks, I gradually gained a better
+understanding of the overall problem. 
+
+My design was to first find all the matching prefixes and their derivations
+given an input. I did this by taking the starting symbol using the production
+function to find its alternative list. I replaced the symbol with all the
+phrases in the alternative list to get more lists. Then for each of these 
+lists, if they have a nonterminal symbol, I found the alternative list for
+the first nonterminal symbol and created even more lists. At the same time,
+I kept track of the derivation for each list by passing the derivation and
+corresponding list around as a pair. During this process, and lists that are
+a certain length longer than the inputted fragment are discarded.
+
+After I got my list of pairs of derivations and matching prefixes, I converted
+it to a list of pairs of derivations and suffixes. Then I took this list an 
+and passed the pairs of derivations and suffixes to the given acceptor and
+returned the first accepted pair, otherwise none. 
+
+The alternative I considered was to find each derivation and matching prefix
+and testing them right away by getting the corresponding suffix and passing 
+them to the acceptor. This would be faster, but I also thought it would
+be more confusing to implement so I decided to just find all of them first
+and then test them one at a time.
+
+Discarding lists of symbols that are longer than the inputted fragment can 
+cause a problem if nonterminal symbols have an alternative list that includes
+an empty list. To give myself a little flexibility, I discard lists once they
+are more than two longer than the inputted fragment. I considered comparing
+the number of terminal symbols in the two lists instead of their absolute 
+lengths, but this had the drawback of not handling non-tail recursion and 
+blind alleys. In these cases, the lists would keep getting longer 
+indefinitely, but by checking the absolute lengths I could discard them. I 
+also checked for when a symbol is replaced just by itself, because the length
+check wouldn't catch this and the program would never finish. I tested a simple
+case of non-tail recursion in my test_1 adding an extra rule 
+Expr -> [N Expr; N Term; N Binop]. In this case, N Expr is continuously gets
+replaced by this new rule, but eventually the length is too long and it will 
+be discarded. In my next test case I modified awkish_grammar in order to test
+for blind alleys and the case of Sym -> [N Sym]. I added the following rules:
+Expr -> [[N Temp; N Expr];[N Expr]] 
+Temp -> [[N Temp]]
+Temp is a blind alley because it will never lead to terminable symbols. 
+
+An example of a test case that would fail is if a list is longer than the 
+inputted fragment, but some of the symbols have rules that are the empty list.
+The list will be discarded even though it would have shortened and possibly 
+been a matching prefix.  
+
+I thought about handling blind alleys by using my code from HW1, but I didn't
+know how to convert the HW2 style grammar to HW1 style grammar. 

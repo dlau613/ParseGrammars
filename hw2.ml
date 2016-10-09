@@ -48,6 +48,25 @@ the production function would be...
 		]
 *)
 
+(* 
+returns the first prefix that matches and is accpeted  
+(possible alternate - or should i return a list of prefixes and check later)
+current_list is a list of nonterminal and terminal symbols
+look for the first non terminal and replace based on leftmost derivation 
+*)
+
+
+(* test rules left-to-right. see if the terminable state is a prefix for the given 
+list of terminables *)
+	(* put nonterminal start symbol into production function to get alternative 
+	list. use the first substitution and recurse. then try next ones *)
+
+	(* (snd gram) (fst gram) gets the alternative list for the start symbol
+	take the first item in the list and replace its first nonterminal symbol
+	and recurse. then go to the next item in the list
+	stop recursing if the length of the list gets longer than the input
+	 *)
+
 
 let rec recurse_helper current_start rules =
 	match rules with
@@ -185,22 +204,27 @@ let rec replace_first_nonterminal_helper current_list replacement =
 				)
 	| _ -> []
 
-
 (* 
 current_list is a list of symbols and derivation is a list of rules used to derive the current_list from the start
 look through symbols. if terminal then we want to keep the symbol, so prepend it to the recursive call
 have to use the (d,l) notation because this function returns a pair. if nonterminal then call the helper to do the replacement
-and add the new rule to the derivation
+and add the new rule to the derivation. if the nonterminal symbol gets replaced by itself then return ([],[])
  *)
 let rec replace_first_nonterminal (derivation, current_list) replacement =
 	match current_list with
 	| h::t ->	(match h with 
 				| T s -> 	(match (replace_first_nonterminal (derivation, t) replacement) with
 							| (d, l) -> (d,h::l))
-				| N s -> (( derivation@[(s,replacement)]), (replace_first_nonterminal_helper current_list replacement))
+				| N s -> 	(match (replace_first_nonterminal_helper current_list replacement) with
+							| l ->	if l=current_list
+										then ([],[])						
+									else ( (derivation@[(s,replacement)]), l )
+							)
 				)
 	| _ -> ([],[])
-(* 
+
+
+ (* 
 return a list of all the new lists with the first nonterminal symbol replaced
 by each rhs in the alternative list. keep track of the derivations as well
  *)
@@ -229,6 +253,7 @@ if it can be then keep the pair, otherwise ignore it and keep going
 let rec filter_lists list_of_pairs input =
 	match list_of_pairs with
 	| [] -> []
+	| ([],_)::t -> (filter_lists t input)
 	| (derivation,current_list)::t -> 	if (possible_prefix_of current_list input)
 										then (derivation,current_list)::(filter_lists t input)
  										else (filter_lists t input)
@@ -257,8 +282,8 @@ greater then return empty list
 let replace_nonterminal_with_alternatives p_function (derivation,current_list) input =
 	if (is_all_terminals current_list)
 		then [(derivation,current_list)]
-	(* else if ((List.length current_list) <= (List.length input))  *)
-	else if ((num_terminals current_list) <= (num_terminals input)) 
+	else if ((List.length current_list) <= ((List.length input)+2)) 
+	(* else if ((num_terminals current_list) <= (num_terminals input))  *)
 		then ( filter_lists (replace_with_alternatives (derivation,current_list) (alt_list_of_first_nonterminal p_function current_list)) input)
 	else []
 
@@ -273,6 +298,7 @@ let rec find_fragments p_function list_of_pairs input =
 						then (d,l)::(find_fragments p_function t input)
 					else (find_fragments p_function ((replace_nonterminal_with_alternatives p_function (d,l) input)@t) input)
 	| _ -> []
+
 
 
 let find_fragments_wrapper gram input =
@@ -317,57 +343,7 @@ let parse_prefix gram =
 		
 
 
-(* 
-returns the first prefix that matches and is accpeted  
-(possible alternate - or should i return a list of prefixes and check later)
-current_list is a list of nonterminal and terminal symbols
-look for the first non terminal and replace based on leftmost derivation 
-*)
-(* let find_all_prefixes_helper p_function current_list input =
-	match current_list with
-	| h::t -> 	match h with
-				if h is nonterminal, then replace it with the first item in its alternative list
-				| N s -> (find_all_prefixes_helper p_function (p_function h)  ) 
-				then find_all_prefixes_helper gram (p_function h)@t *)
 
-
-(* test rules left-to-right. see if the terminable state is a prefix for the given 
-list of terminables *)
-	(* put nonterminal start symbol into production function to get alternative 
-	list. use the first substitution and recurse. then try next ones *)
-
-	(* (snd gram) (fst gram) gets the alternative list for the start symbol
-	take the first item in the list and replace its first nonterminal symbol
-	and recurse. then go to the next item in the list
-	stop recursing if the length of the list gets longer than the input
-	 *)
-(* 	 
-let find_all_prefixes gram input =
-	match ((snd gram) (fst gram)) with
-	| h::t -> 	match (find_all_prefixes_helper (snd gram) h input) with
-				| Some x -> x
-				| None -> find_all_prefixes_helper (snd gram) t input
-
- *)	
-
-
-(* matcher finds prefix matches and then checks them by testing if acceptor 
-succeeds on the corresponding derivation and suffix
-i think the derivation is a list of rules that lead to the prefix *)
-(* let matcher acceptor fragment =
-	acceptor
-let create_matcher something =
-	fun acceptor fragment -> matcher acceptor fragment *)
-
-
-(* let twice (f : int -> int) (x : int) : int = f (f x);; *)
-(* let twice f x = f (f x);;
-let twice2 f =
-	fun x -> f (f x);;
-let twice3 (f : int -> int) =
-  fun (x : int) -> f (f x);;
-let fourth = twice (fun (x : int) -> x * x);;
-let fourth2 = twice2 (fun (x : int) -> x * x);; *)
 
 
 
