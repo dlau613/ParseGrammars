@@ -188,12 +188,12 @@ let possible_prefix_of_test1 =
 let possible_prefix_of_test2 = 
 	not (possible_prefix_of [T"1";N Expr] [T"3";T"+";T"4";T"-"])
 
-let find_fragments_wrapper_test0 = 
+(* let find_fragments_wrapper_test0 = 
 	find_fragments_wrapper awkish_grammar [T"3";T"+";T"4";T"-"] 
 	= [([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num]); (Num, [T "3"]);
      (Binop, [T "+"]); (Expr, [N Term]); (Term, [N Num]); (Num, [T "4"])],
     [T "3"; T "+"; T "4"]);
-   ([(Expr, [N Term]); (Term, [N Num]); (Num, [T "3"])], [T "3"])]
+   ([(Expr, [N Term]); (Term, [N Num]); (Num, [T "3"])], [T "3"])] *)
 
 (* let find_fragments_wraper_test1 =
 	find_fragments_wrapper awkish_grammar2 [T"3";T"+";T"4";T"-"] 
@@ -220,14 +220,14 @@ let find_corresponding_suffix_test0 =
     ["-"]);
    ([(Expr, [N Term]); (Term, [N Num]); (Num, [T "3"])], ["+"; "4"; "-"])]
 
-let find_derivations_and_suffixes_test0 = 
+(* let find_derivations_and_suffixes_test0 = 
 	find_derivations_and_suffixes awkish_grammar [T"3";T"+";T"4";T"-"]
 	= [([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num]); (Num, [T "3"]);
      (Binop, [T "+"]); (Expr, [N Term]); (Term, [N Num]); (Num, [T "4"])],
     ["-"]);
-   ([(Expr, [N Term]); (Term, [N Num]); (Num, [T "3"])], ["+"; "4"; "-"])]
+   ([(Expr, [N Term]); (Term, [N Num]); (Num, [T "3"])], ["+"; "4"; "-"])] *)
 
-let parse_prefix_helper_test0 = 
+(* let parse_prefix_helper_test0 = 
 	parse_prefix_helper [([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num]); (Num, [T "3"]);
      (Binop, [T "+"]); (Expr, [N Term]); (Term, [N Num]); (Num, [T "4"])],
     [T "-"]);
@@ -236,7 +236,7 @@ let parse_prefix_helper_test0 =
    = Some
    ([(Expr, [N Term; N Binop; N Expr]); (Term, [N Num]); (Num, [T "3"]);
      (Binop, [T "+"]); (Expr, [N Term]); (Term, [N Num]); (Num, [T "4"])],
-    [T "-"])
+    [T "-"]) *)
 
 (* Test Cases from Spec *)
 let test0 =

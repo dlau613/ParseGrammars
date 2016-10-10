@@ -258,20 +258,7 @@ let rec filter_lists list_of_pairs input =
 										then (derivation,current_list)::(filter_lists t input)
  										else (filter_lists t input)
 
-(* 
-alternative to comparing the absolute length of a list of symbols
-this will count the number of terminal symbols instead
-reason is because a list can have a nonterminal symbol that will go to empty
-which means absolute length can be longer than the length of the input, but we shouldnt ignore it
-as a possibility
- *)
-let rec num_terminals symbol_list = 
-	match symbol_list with
-	| h::t -> 	(match h with
-				| T s -> 1 + num_terminals t
-				| N s -> num_terminals t
-				)
-	| _ -> 0
+
 
 (* 
 if the current list is all terminals then nothing to replace and return it
@@ -287,23 +274,6 @@ let replace_nonterminal_with_alternatives p_function (derivation,current_list) i
 		then ( filter_lists (replace_with_alternatives (derivation,current_list) (alt_list_of_first_nonterminal p_function current_list)) input)
 	else []
 
-(* 
-returns a list of pairs of all all the fragments and their derivations
-list_of_pairs is a list pairs of the derivations and the possible results when you replace the first nonterminal symbol with rhs's
-from its alternative list
- *)
-let rec find_fragments p_function list_of_pairs input =
-	match list_of_pairs with 
-	| (d,l)::t -> 	if (is_all_terminals l)
-						then (d,l)::(find_fragments p_function t input)
-					else (find_fragments p_function ((replace_nonterminal_with_alternatives p_function (d,l) input)@t) input)
-	| _ -> []
-
-
-
-let find_fragments_wrapper gram input =
-	find_fragments (snd gram) [([],[N (fst gram)])] input
-
 (*
 returns the suffix given a list and a prefix
 symbol_list is the prefix
@@ -318,11 +288,60 @@ let rec find_corresponding_suffix_helper symbol_list input =
 			| [] -> []
 			| _ -> input)
 
+let rec find_and_test_fragments p_function list_of_pairs input acceptor =
+	match list_of_pairs with 
+	| (d,l)::t -> 	if (is_all_terminals l) then 
+						(match (acceptor d (symbols_to_strings (find_corresponding_suffix_helper l input))) with 
+						| None -> (find_and_test_fragments p_function t input acceptor)
+						| Some x -> Some x)
+					else (find_and_test_fragments p_function ((replace_nonterminal_with_alternatives p_function (d,l) input)@t) input acceptor)
+	| _ -> None
+
+let rec find_and_test_fragments_wrapper  gram =
+	fun acceptor input -> (find_and_test_fragments (snd gram) [([],[N (fst gram)])] (strings_to_symbols input) acceptor)
+
+(* return a matcher for gram 
+matcher is a function that takes an acceptor and a fragment*)
+let parse_prefix gram = 
+	find_and_test_fragments_wrapper gram
+
+
+(* initial design required the functions below. took so long to write that I don't want to delete
+
+(* 
+alternative to comparing the absolute length of a list of symbols
+this will count the number of terminal symbols instead
+reason is because a list can have a nonterminal symbol that will go to empty
+which means absolute length can be longer than the length of the input, but we shouldnt ignore it
+as a possibility
+ *)
+let rec num_terminals symbol_list = 
+	match symbol_list with
+	| h::t -> 	(match h with
+				| T s -> 1 + num_terminals t
+				| N s -> num_terminals t
+				)
+	| _ -> 0
+(* 
+returns a list of pairs of all all the fragments and their derivations
+list_of_pairs is a list pairs of the derivations and the possible results when you replace the first nonterminal symbol with rhs's
+from its alternative list
+ *)
+let rec find_fragments p_function list_of_pairs input =
+	match list_of_pairs with 
+	| (d,l)::t -> 	if (is_all_terminals l)
+						then (d,l)::(find_fragments p_function t input)
+					else (find_fragments p_function ((replace_nonterminal_with_alternatives p_function (d,l) input)@t) input)
+	| _ -> []
+
+let find_fragments_wrapper gram input =
+	find_fragments (snd gram) [([],[N (fst gram)])] input
+
 let rec find_corresponding_suffix list_of_pairs input =
 	match list_of_pairs with
 	| (d,l)::t -> (d,(symbols_to_strings (find_corresponding_suffix_helper l input)))::(find_corresponding_suffix t input)
 	| [] -> []
-
+	
 (* returns a list of pairs of all the derivations of prefixes and the corresponding suffix *)
 let find_derivations_and_suffixes gram = 
 	fun input -> find_corresponding_suffix (find_fragments_wrapper gram input) input  
@@ -336,14 +355,11 @@ let rec parse_prefix_helper list_of_pairs acceptor =
 				| Some x -> Some x)
 	| _ -> None
 
-(* return a matcher for gram 
-matcher is a function that takes an acceptor and a fragment*)
-let parse_prefix gram = 
-	fun acceptor input -> (parse_prefix_helper (find_derivations_and_suffixes gram (strings_to_symbols input)) acceptor )
 		
+(* let parse_prefix gram = 
+	fun acceptor input -> (parse_prefix_helper (find_derivations_and_suffixes gram (strings_to_symbols input)) acceptor ) *)
 
-
-
+ *)
 
 
 

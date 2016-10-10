@@ -14,7 +14,11 @@ lists, if they have a nonterminal symbol, I found the alternative list for
 the first nonterminal symbol and created even more lists. At the same time,
 I kept track of the derivation for each list by passing the derivation and
 corresponding list around as a pair. During this process, and lists that are
-a certain length longer than the inputted fragment are discarded.
+a certain length longer than the inputted fragment are discarded. I also
+initially converted the list of strings to a list of symbols and then 
+converted the symbols back to strings when I getting a suffix to pass to the
+acceptor. This was just to make it easier to work with the symbols in the 
+alternative lists.
 
 After I got my list of pairs of derivations and matching prefixes, I converted
 it to a list of pairs of derivations and suffixes. Then I took this list an 
@@ -26,6 +30,11 @@ and testing them right away by getting the corresponding suffix and passing
 them to the acceptor. This would be faster, but I also thought it would
 be more confusing to implement so I decided to just find all of them first
 and then test them one at a time.
+
+However, after implementing it with my initial design, it took over 30 minutes
+for it to pass test4. Changing implementation to testing matching prefixes 
+immediately was very quick (around 10 minutes) and then it ran all the test 
+cases in around 30 seconds.
 
 Discarding lists of symbols that are longer than the inputted fragment can 
 cause a problem if nonterminal symbols have an alternative list that includes
